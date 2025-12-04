@@ -233,5 +233,5 @@ print(response)
 ✔ Reproducible setup using SQL scripts + this README
 ✔ Clear separation of roles: SQL Developer & AI Engineer
 
-* или заполнить Authors секцию.
+
 
