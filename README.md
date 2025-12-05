@@ -1,10 +1,12 @@
 
+---
+
 # 📘 Superstore Database Project
 
 ### *Final Project — SQL Developer & AI Engineer*
 
-This project demonstrates the full data engineering + AI analytics pipeline using the **Superstore dataset**.
-It includes relational database design, data normalization, SQL optimization, analytical VIEWs, and an AI-powered SQL agent (Gemini + LangChain).
+This project demonstrates a complete data engineering + AI analytics workflow using the **Superstore dataset**.
+It includes relational database design, data normalization, SQL optimization, analytical VIEWs, and an AI-powered SQL assistant built with **Google Gemini 2.5 Flash + LangChain**.
 
 ---
 
@@ -18,7 +20,7 @@ superstore-final-project/
 │   ├── 02_populate.sql      → populates normalized tables from Raw_Superstore
 │
 ├── data/
-│   └── Sample-Superstore.csv (optional — raw dataset for staging)
+│   └── Sample-Superstore.csv  → raw dataset for staging
 │
 ├── notebooks/
 │   └── AI_agent.ipynb       → Gemini + LangChain SQL agent notebook
@@ -33,13 +35,13 @@ superstore-final-project/
 The SQL Developer is responsible for:
 
 * Designing the relational schema based on the ER diagram
-* Creating tables, keys, and indexes
+* Creating tables, PKs, FKs, and performance indexes
 * Importing the raw Superstore dataset
 * Cleaning and normalizing data
-* Populating all dimension and fact tables
-* Preparing the dataset for downstream analytics and AI queries
+* Populating dimension and fact tables
+* Preparing the dataset for analytical queries and AI processing
 
-Below is the guide to reproduce the full database.
+Below is the full guide to reconstruct the database.
 
 ---
 
@@ -47,7 +49,7 @@ Below is the guide to reproduce the full database.
 
 ## **1️⃣ Run the Schema Script**
 
-Open MySQL Workbench → run:
+In MySQL Workbench:
 
 ```sql
 SOURCE sql/01_schema.sql;
@@ -55,8 +57,10 @@ SOURCE sql/01_schema.sql;
 
 This script will:
 
-* Create the database `superstore_db`
-* Create staging table `Raw_Superstore`
+* Create database: `superstore_db`
+
+* Create staging table: `Raw_Superstore`
+
 * Create normalized tables:
 
   * `Customers`
@@ -64,7 +68,8 @@ This script will:
   * `Products`
   * `Orders`
   * `Order_Items`
-* Add primary keys, foreign keys, and optimization indexes
+
+* Add primary keys, foreign keys, indexing
 
 ---
 
@@ -72,12 +77,12 @@ This script will:
 
 Using **Table Data Import Wizard**:
 
-* File: `Sample - Superstore.csv`
-* Target Table: `Raw_Superstore`
-* Encoding: UTF-8
-* Import mode: Replace existing data
+* File → `Sample - Superstore.csv`
+* Target table → `Raw_Superstore`
+* Encoding → UTF-8
+* Import mode → Replace data
 
-After import:
+Verify import:
 
 ```sql
 SELECT COUNT(*) FROM Raw_Superstore;
@@ -95,69 +100,77 @@ SOURCE sql/02_populate.sql;
 
 This script:
 
-* Cleans existing data
-* Removes duplicates using `GROUP BY`
-* Converts date fields using `STR_TO_DATE`
-* Populates dimension tables (Customers, Locations, Products)
-* Populates fact tables (Orders, Order_Items)
+* Cleans duplicates using `GROUP BY`
+* Converts date formats via `STR_TO_DATE`
+* Populates Customers, Locations, Products
+* Populates Orders and Order_Items fact tables
 
 ---
 
-## **4️⃣ Verify Successful Load**
-
-Run:
+## **4️⃣ Verify Data Load**
 
 ```sql
 SELECT 'Customers', COUNT(*) FROM Customers
-UNION ALL
-SELECT 'Locations', COUNT(*) FROM Locations
-UNION ALL
-SELECT 'Products', COUNT(*) FROM Products
-UNION ALL
-SELECT 'Orders', COUNT(*) FROM Orders
-UNION ALL
-SELECT 'Order_Items', COUNT(*) FROM Order_Items;
+UNION ALL SELECT 'Locations', COUNT(*) FROM Locations
+UNION ALL SELECT 'Products', COUNT(*) FROM Products
+UNION ALL SELECT 'Orders', COUNT(*) FROM Orders
+UNION ALL SELECT 'Order_Items', COUNT(*) FROM Order_Items;
 ```
 
-You should see >1000 rows in each table.
+You should see thousands of rows across all tables.
 
 ---
 
-# **🤖 2. AI Engineer Component**
+# **🤖 2. AI Engineer Component (UPDATED)**
 
-The AI Engineer is responsible for:
+The AI Engineer built an AI-driven Text-to-SQL system that enables natural-language analytics against the MySQL database.
 
-* Connecting Python to MySQL
-* Creating analytical SQL VIEWs for each business problem
-* Implementing an AI agent using Google Gemini + LangChain
-* Performing data analysis via natural language questions
+The system uses:
+
+* **Google Gemini 2.5 Flash**
+* **LangChain (custom pipeline)**
+* **MySQLConnector + SQLAlchemy**
+* **Custom-built ask() and insight() functions**
+
+The Text-to-SQL agent:
+
+1. Reads the database schema
+2. Accepts natural-language questions
+3. Generates SQL using Gemini
+4. Executes SQL on MySQL
+5. Produces human-readable business insights
+
+This allows non-technical users to run complex queries without writing SQL.
 
 ---
 
-# **🔍 Analytical SQL VIEWs**
+# **🔍 Analytical SQL VIEWs Created by AI Engineer**
 
-The following VIEWs are created to generate insights:
+To support the 4 business problem statements, four VIEWs were created:
 
-### **1. Regional & Category Profitability Analysis**
+---
 
-Identifies bottom-5 regions/sub-categories by profit and evaluates correlation with discounts.
+### **1. Regional & Category Profitability**
+
+```sql
+CREATE OR REPLACE VIEW vw_regional_profitability AS
+SELECT
+    l.Region,
+    SUM(oi.Sales) AS total_sales,
+    SUM(oi.Profit) AS total_profit,
+    AVG(oi.Discount) AS avg_discount
+FROM Orders o
+JOIN Locations l ON o.Postal_Code = l.Postal_Code
+JOIN Order_Items oi ON o.Order_ID = oi.Order_ID
+GROUP BY l.Region;
+```
+
+---
 
 ### **2. Shipping Performance Optimization**
 
-Analyzes delivery speed and profitability across ship modes.
-
-### **3. High-Value Customer Segmentation**
-
-Finds top 10 customers by Sales and their Segment.
-
-### **4. Inventory & Seasonal Trends**
-
-Monthly and yearly sales trends for each sub-category.
-
-Example:
-
 ```sql
-CREATE OR REPLACE VIEW vw_shipmode_performance AS
+CREATE OR REPLACE VIEW vw_shipping_performance AS
 SELECT
     o.Ship_Mode,
     AVG(DATEDIFF(o.Ship_Date, o.Order_Date)) AS avg_delivery_days,
@@ -170,37 +183,140 @@ GROUP BY o.Ship_Mode;
 
 ---
 
-# **🤖 AI Agent (Gemini + LangChain)**
+### **3. High-Value Customer Revenue Ranking**
 
-The AI agent:
-
-* Reads natural language questions
-* Classifies the user intent
-* Generates SQL queries using Gemini
-* Executes SQL through LangChain
-* Returns results + explanation
-
-### **Dependencies**
-
-```bash
-pip install google-generativeai langchain langchain-community langchain-google-vertexai mysql-connector-python
+```sql
+CREATE OR REPLACE VIEW vw_customer_revenue AS
+SELECT
+    c.Customer_ID,
+    c.Customer_Name,
+    c.Segment,
+    SUM(oi.Sales)  AS total_sales,
+    SUM(oi.Profit) AS total_profit,
+    COUNT(DISTINCT o.Order_ID) AS total_orders
+FROM Customers c
+JOIN Orders o ON c.Customer_ID = o.Customer_ID
+JOIN Order_Items oi ON o.Order_ID = oi.Order_ID
+GROUP BY c.Customer_ID, c.Customer_Name, c.Segment;
 ```
 
-### **Database Connection Example**
+---
+
+### **4. Sub-Category Seasonal Sales Trends**
+
+```sql
+CREATE OR REPLACE VIEW vw_subcategory_sales_trends AS
+SELECT
+    p.Sub_Category,
+    YEAR(o.Order_Date) AS year,
+    MONTH(o.Order_Date) AS month,
+    SUM(oi.Sales)  AS total_sales,
+    SUM(oi.Profit) AS total_profit
+FROM Orders o
+JOIN Order_Items oi ON o.Order_ID = oi.Order_ID
+JOIN Products p ON oi.Product_ID = p.Product_ID
+GROUP BY p.Sub_Category, YEAR(o.Order_Date), MONTH(o.Order_Date);
+```
+
+---
+
+# **🤖 AI Text-to-SQL Agent (Gemini + LangChain)**
+
+The AI Engineer implemented a **custom Text-to-SQL agent** rather than LangChain’s default agents (which deprecated several components).
+
+The architecture includes:
+
+* Schema-aware system prompt
+* Dynamic SQL generation
+* Multi-statement SQL parsing
+* Automatic SQL execution
+* AI-powered insight generation based on results
+
+---
+
+## **Python Setup**
 
 ```python
 from langchain_community.utilities import SQLDatabase
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_core.messages import SystemMessage, HumanMessage
+import pandas as pd
+import os
+```
 
+Database connection:
+
+```python
 db = SQLDatabase.from_uri(
     "mysql+mysqlconnector://root:YOUR_PASSWORD@localhost:3306/superstore_db"
 )
 ```
 
-### **Agent Example**
+Gemini model:
 
 ```python
-response = agent.run("Show me the bottom 5 sub-categories by profit.")
-print(response)
+llm = ChatGoogleGenerativeAI(
+    model="gemini-2.5-flash",
+    temperature=0
+)
+```
+
+---
+
+# **ask() — Execute AI-Generated SQL**
+
+```python
+def ask(question: str):
+    response = llm.invoke([system_msg, HumanMessage(content=question)])
+    raw_sql = response.content.strip()
+
+    statements = [s.strip() for s in raw_sql.split(";") if s.strip()]
+    results = []
+
+    for stmt in statements:
+        try:
+            res = db.run(stmt)
+            results.append((stmt, res))
+        except Exception as e:
+            results.append((stmt, f"ERROR: {e}"))
+
+    return results
+```
+
+---
+
+# **insight() — AI-Generated Business Insights**
+
+```python
+def insight(question: str):
+    sql_response = llm.invoke([system_msg, HumanMessage(content=question)])
+    sql = sql_response.content.strip().split(";")[0]
+
+    result = db.run(sql)
+
+    explanation_prompt = f"""
+    SQL:
+    {sql}
+
+    RESULT:
+    {result}
+
+    Provide a 2–3 sentence business insight:
+    """
+    explanation = llm.invoke([HumanMessage(content=explanation_prompt)])
+    return explanation.content
+```
+
+---
+
+# **📊 Examples of AI Usage**
+
+```python
+ask("How many rows does each table contain?")
+insight("Which regions have the lowest profit and why?")
+insight("Which shipping mode performs best?")
+insight("Who are the top 10 most valuable customers?")
+insight("Which sub-categories show seasonal sales trends?")
 ```
 
 ---
@@ -210,27 +326,29 @@ print(response)
 ### **SQL Developer**
 
 * MySQL Workbench
-* ER modeling
-* Relational normalization
-* Data cleaning
-* Indexing (performance optimization)
+* ERD modeling
+* Normalization & cleaning
+* Indexing
+* SQL scripting
 
 ### **AI Engineer**
 
-* Python + Jupyter Notebook
+* Python + VS Code / Jupyter
 * Google Gemini 2.5 Flash
-* LangChain Agents
-* SQLDatabase tools
+* LangChain (custom pipeline)
+* MySQLConnector
 * Pandas
 
 ---
 
 # **🎯 Final Outcome**
 
-✔ Fully normalized and indexed SQL database
-✔ Analytical SQL VIEWs aligned with business goals
-✔ AI-powered natural-language SQL agent
-✔ Reproducible setup using SQL scripts + this README
-✔ Clear separation of roles: SQL Developer & AI Engineer
+✔ Fully normalized and indexed database
+✔ Analytical SQL VIEWs mapped to business goals
+✔ A fully working natural-language **AI SQL agent**
+✔ Automated insight generation
+✔ Reproducible setup using provided SQL scripts
+✔ Clear role separation: SQL Developer & AI Engineer
 
+---
 
